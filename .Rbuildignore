@@ -1,0 +1,16 @@
+^renv$
+^renv\.lock$
+^.*\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^\.github$
+^README\.Rmd$
+^\.gitignore$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^\.claude$
+^CLAUDE\.md$
+^dev$
+^renv$
+^renv\.lock$

@@ -1,0 +1,49 @@
+Package: dhis2API
+Title: Download Aggregate Data and Metadata from a 'DHIS2' Server
+Version: 0.1.0
+Authors@R:
+    person(given = "Mohamed A.",
+           family = "Yusuf",
+           role = c("aut", "cre"),
+           email = "mohamedayusuf87@gmail.com",
+           comment = c(ORCID = "0000-0002-9339-4613"))
+Description: An R client for the Web API of 'DHIS2' (District Health
+    Information Software 2). Reads metadata, aggregate data and tracker
+    records using a username and password or a personal access token.
+    Supports metadata filters, local metadata caching, monthly and weekly
+    period identifiers, and downloads split into smaller requests. Stores
+    aggregate data in a local 'DuckDB' database, resumes interrupted
+    downloads and updates raw data values from changes on the server.
+License: MIT + file LICENSE
+URL: https://github.com/truenomad/dhis2API
+BugReports: https://github.com/truenomad/dhis2API/issues
+Encoding: UTF-8
+Language: en-GB
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Depends:
+    R (>= 4.1.0)
+Imports:
+    cli,
+    DBI,
+    dbplyr,
+    dplyr,
+    duckdb,
+    duckplyr,
+    fs,
+    furrr,
+    future,
+    httr2 (>= 1.1.0),
+    progressr,
+    purrr (>= 1.0.0),
+    qs2,
+    readr,
+    rlang,
+    tibble,
+    tidyr,
+    utils
+Suggests:
+    keyring,
+    testthat (>= 3.0.0),
+    withr
+Config/testthat/edition: 3
