@@ -1,6 +1,6 @@
 Package: dhis2API
 Title: Download Aggregate Data and Metadata from a 'DHIS2' Server
-Version: 0.1.0
+Version: 0.2.0
 Authors@R:
     person(given = "Mohamed A.",
            family = "Yusuf",
