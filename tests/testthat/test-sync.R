@@ -358,6 +358,111 @@ test_that("a full-access account refreshes every unit at the level", {
   expect_equal(count_rows(store$con, "analytics_values"), 0)
 })
 
+test_that("data view units are read afresh despite a metadata cache", {
+  quiet_cli()
+  view <- c("OU_D1", "OU_D2")
+  log <- local_fake_server(function(path, query) {
+    restricted_server(view = view, empty = TRUE)(path, query)
+  })
+  store <- fake_sync_store()
+  s <- fake_session(cache_dir = withr::local_tempdir())
+  run <- function() {
+    dhis2_sync_analytics(
+      store$con, "DE_1", "202601", "LEVEL-3", store$interim,
+      table = "analytics_values", resume = FALSE, session = s
+    )
+  }
+  run()
+  two_districts(store$con)
+  view <- "OU_D1"
+  run()
+  held <- DBI::dbGetQuery(
+    store$con, "SELECT org_unit, value FROM analytics_values"
+  )
+  expect_equal(held$org_unit, "OU_D2")
+  expect_equal(held$value, "99")
+  # the permission query went to the server both times
+  scope_calls <- purrr::keep(
+    log$calls, \(x) identical(x$query$userDataViewFallback, "true")
+  )
+  expect_length(scope_calls, 2)
+})
+
+test_that("a saved file cannot write rows outside the current scope", {
+  quiet_cli()
+  view <- c("OU_D1", "OU_D2")
+  local_fake_server(function(path, query) {
+    if (path %in% c("organisationUnits.json", "organisationUnitLevels.json")) {
+      return(restricted_server(view = view)(path, query))
+    }
+    body <- fake_analytics_body("DE_1", "202601")
+    body$rows <- list(
+      list("DE_1", "202601", "OU_D1", "COC_1", "5"),
+      list("DE_1", "202601", "OU_D2", "COC_1", "10")
+    )
+    json_resp(body)
+  })
+  store <- fake_sync_store()
+  run <- function() {
+    dhis2_sync_analytics(
+      store$con, "DE_1", "202601", "LEVEL-3", store$interim,
+      table = "analytics_values", keep_files = TRUE, session = fake_session()
+    )
+  }
+  run()
+  DBI::dbExecute(
+    store$con,
+    "UPDATE analytics_values SET value = '99' WHERE org_unit = 'OU_D2'"
+  )
+  view <- "OU_D1"
+  out <- run()
+  expect_equal(out$rows, 0)
+  held <- DBI::dbGetQuery(
+    store$con, "SELECT org_unit, value FROM analytics_values ORDER BY 1"
+  )
+  expect_equal(held$value, c("5", "99"))
+
+  # with no readable unit at all, the saved file writes nothing
+  view <- character()
+  expect_error(run(), "data view")
+  held <- DBI::dbGetQuery(
+    store$con, "SELECT org_unit, value FROM analytics_values ORDER BY 1"
+  )
+  expect_equal(held$value, c("5", "99"))
+})
+
+test_that("a scoped replacement inserts only rows inside the scope", {
+  store <- fake_sync_store()
+  file <- fs::path(store$interim, "a.parquet")
+  .dhis2_write_parquet(
+    tibble::tibble(
+      data_element = "DE_1", period = "202601",
+      org_unit = c("OU_D1", "OU_D2"), cat_option_combo = "COC_1",
+      value = c("5", "10")
+    ),
+    file
+  )
+  .dhis2_store_replace_scope(
+    store$con, "analytics_values", file,
+    data_element = "DE_1", period = "202601", org_unit = "OU_D1"
+  )
+  expect_equal(
+    DBI::dbGetQuery(store$con, "SELECT org_unit FROM analytics_values")[[1]],
+    "OU_D1"
+  )
+  .dhis2_store_replace_scope(
+    store$con, "analytics_values", file,
+    data_element = "DE_1", period = "202601", org_unit = character()
+  )
+  expect_equal(count_rows(store$con, "analytics_values"), 1)
+  # an unknown scope keeps the plain insert of every row
+  .dhis2_store_replace_scope(
+    store$con, "analytics_values", file,
+    data_element = "DE_1", period = "202601", org_unit = NULL
+  )
+  expect_equal(count_rows(store$con, "analytics_values"), 2)
+})
+
 test_that("unreadable data view units stop a refresh before any change", {
   quiet_cli()
   log <- local_fake_server(restricted_server(view = character()))

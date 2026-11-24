@@ -71,10 +71,13 @@ selection itself: UIDs; \code{USER_ORGUNIT}, \code{USER_ORGUNIT_CHILDREN} and
 \verb{LEVEL-<n>-<uid>} and \verb{OU_GROUP-<uid>} from the organisation unit
 metadata, within the UIDs or user units given alongside them and within
 the account's data view organisation units, because metadata can list
-units whose data the account cannot read. If those data view units
-cannot be read, the function stops before downloading or changing
-anything. An item that is not recognised stops the function from
-removing anything: its old rows are kept and a warning is given.
+units whose data the account cannot read. The data view units are read
+from the server on every run, never from the metadata cache, and both
+the rows removed and the rows written from a saved file are limited to
+that scope. If the data view units cannot be read, the function stops
+before downloading or changing anything. An item that is not recognised
+stops the function from removing anything: its old rows are kept and a
+warning is given.
 
 Each saved file is bound to the server, account, table, period type and
 selection it came from. With \code{resume = TRUE}, requests whose saved file
